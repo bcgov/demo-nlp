@@ -22,3 +22,4 @@ venv.bak/
 requirements_full.txt
 
 # secure files
+credentials.txt
