@@ -14,7 +14,7 @@
 
    The URL is copied from the GitHub repo you are wishing to create.
 
-
+---
 ### General Pull Request Workflow (repeat 4-6 as needed)
 ---
 
@@ -48,6 +48,7 @@
 
    Once approved: Original author merges into the `main` branch and deletes the extra branch.
 
+---
 ### Tidying Up An Approved Pull Request
 --- 
 
