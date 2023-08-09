@@ -17,9 +17,14 @@ venv.bak/
 # IDEs
 .idea
 .vscode
+*__pycache__/
+
 
 # full environment file
 requirements_full.txt
 
 # secure files
 credentials.txt
+
+# model files
+models/
