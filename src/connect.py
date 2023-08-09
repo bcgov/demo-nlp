@@ -14,7 +14,7 @@ import os
 # connection stuff
 import pyodbc
 from sqlalchemy import create_engine
-import urllib
+from urllib import parse
 
 # standard stuff
 import pandas as pd
@@ -29,7 +29,7 @@ def create_connection(cred_path, sqlalchemy=False):
 
     if sqlalchemy:
         # Create a URL for SQLAlchemy's engine
-        params = urllib.parse.quote_plus(connection_str)
+        params = parse.quote_plus(connection_str)
         connection = create_engine("mssql+pyodbc:///?odbc_connect=%s" % params, use_setinputsizes=False)
     
     else:
