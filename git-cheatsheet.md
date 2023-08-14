@@ -44,7 +44,12 @@
 
    Request a reviewer (someone else on the team)
 
-   Reviewer: request changes or approve
+   **Reviewer:** 
+      * request changes or approve. 
+      * in order to look at someone elses pull request on your local machine (to test the code, make sure it runs smoothly, view notebook changes, etc.), run:
+
+         `git checkout <pull-request-branch-name>`
+
 
    Once approved: Original author merges into the `main` branch and deletes the extra branch.
 
