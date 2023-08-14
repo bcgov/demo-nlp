@@ -10,7 +10,19 @@ Repository to host code and documentation surrounding prototype NLP analysis of 
 
 ### Usage
 
-TBD
+In order to create any model, the user must have secure access to the required underlying datasets - these are IDIR restricted. To gain access to the database, a `credentials.txt` file must exist in the top level of this repository of the form: 
+
+```
+DRIVER=DRIVER_TYPE;
+SERVER=SERVER_NAME;
+DATABASE=DATABASE_NAME;
+Trusted_Connection=yes;
+```
+
+A sample connections file can be provided if necessary, after a review of the reasons for requiring access.
+
+* To create a new model, run `create_model_q32.ipynb`. 
+* To append new model results to the question, run `predict_model_q32.ipynb`
 
 ### Getting Help or Reporting an Issue
 
