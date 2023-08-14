@@ -35,6 +35,7 @@ import pandas as pd
 
 # our stuff
 from .preprocess import *
+from .connect import *
 
 # create classifier
 def create_model(input_df, output_df, verbose=True):
@@ -49,7 +50,8 @@ def create_model(input_df, output_df, verbose=True):
 
 # save classifier
 # must also save the code df long so that it matches exactly what was used
-def save_model(model_path, model, code_df_long):
+def save_model(cred_path, model_base_path, model, code_df_long):
+    model_path = get_model_path(cred_path, model_base_path)
     create_model_files = False
     if os.path.isdir(model_path):
         if len(os.listdir(model_path))>1:
@@ -64,14 +66,15 @@ def save_model(model_path, model, code_df_long):
         create_model_files = True
 
     if create_model_files:
-        os.mkdir(model_path)
+        os.makedirs(model_path)
         joblib.dump(model, os.path.join(model_path, 'model.joblib'))
         code_df_long.to_csv(os.path.join(model_path, 'code_df_long.csv'), index=False)
 
 
 # load classifier
 # must also load the code df long so that it matches exactly what was used 
-def load_model(model_path):
+def load_model(cred_path, model_base_path):
+    model_path = get_model_path(cred_path, model_base_path)
     model = joblib.load(os.path.join(model_path, 'model.joblib'))
     code_df_long = pd.read_csv(os.path.join(model_path, 'code_df_long.csv'), dtype='string')
     return model, code_df_long
@@ -210,6 +213,7 @@ def exact_match(y, y_pred, threshold):
     else:
         return 0
 
+
 # percent of the original categories that got correctly matched 
 def pct_of_original_matched(y, y_pred, threshold):
     y_pred = (y_pred>threshold)*1
@@ -226,6 +230,7 @@ def pct_of_original_matched(y, y_pred, threshold):
     else:
         return c / len(y_loc)
 
+
 # number of extra categories that got categorized
 def num_extra_categories(y, y_pred, threshold):
     y_pred = (y_pred>threshold)*1
@@ -237,6 +242,7 @@ def num_extra_categories(y, y_pred, threshold):
         if kk not in y_loc:
             c+=1
     return c
+
 
 # number of categories total
 def num_categories(y, threshold):

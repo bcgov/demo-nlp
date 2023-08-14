@@ -32,6 +32,21 @@ from urllib import parse
 import pandas as pd
 
 
+# get model filepath from credentials
+def get_model_path(cred_path, model_base_path):
+    model_path = '//'
+    with open(cred_path) as infile:
+        for line in infile:
+            line_list = re.split('=|;', line)
+            if 'SERVER' in line_list:
+                model_path += line_list[1] + '/'
+            if 'DATABASE' in line_list:
+                model_path += line_list[1]
+
+    model_path += f'/{model_base_path}'
+    return model_path
+
+
 # get connection to database
 def create_connection(cred_path, sqlalchemy=False):  
     connection_str = ''
