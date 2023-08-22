@@ -136,7 +136,7 @@ def get_scores_from_df(response_df, response_column, code_df_long, headers=None)
 
 # for hardcoded training data, convert to wide form
 # 1/0 binary responses for each category
-def get_outputs_wide(df, response_column, code_df_long):
+def get_outputs_wide(df, response_column, code_df_long, output_columns, n_columns):
     code_list = code_df_long.code.unique()
 
     output_df = pd.DataFrame(columns = ['response'] + list(code_list))
@@ -146,8 +146,8 @@ def get_outputs_wide(df, response_column, code_df_long):
         code_vals = [0]*len(code_list)
         # cycle through all the 
         # NOTE: this is question specific
-        for ii in range(1,17):
-            column = f'q32race_c{ii:02}'
+        for ii in range(1, n_columns+1):
+            column = f'{output_columns}{ii:02}'
             possible_code = row[column]
             if possible_code is None:
                 continue
