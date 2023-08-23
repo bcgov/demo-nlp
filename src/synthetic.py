@@ -132,7 +132,10 @@ def create_multi_phrase_synthetic(
     multi_response_freq_test.columns = ['combination', 'frequency']
 
     # Extract combinations from df_closed
-    df_closed['combination'] = df_closed['q32race'].apply(lambda x: tuple(x.split('µ')))
+
+    # change to generic column name 
+    df_closed.columns = ['response']
+    df_closed['combination'] = df_closed['response'].apply(lambda x: tuple(x.split('µ')))
     multi_response_freq_closed = df_closed['combination'].value_counts().reset_index()
     multi_response_freq_closed.columns = ['combination', 'frequency']
 
