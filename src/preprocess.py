@@ -27,6 +27,9 @@ import os
 import pandas as pd
 import numpy as np
 
+# country info
+from countryinfo import CountryInfo
+
 # nlp stuff
 from fuzzywuzzy import fuzz
 from autocorrect import Speller
@@ -40,7 +43,7 @@ def split_description(description):
         return []
         
     # split string based on comma delimiters, as well as words in brackets
-    desc_list = re.split(r'\sand\s|\sor\s|[,()\r\n]+', description)
+    desc_list = re.split(r'\sand\s|\sor\s|including|[,;()\r\n]+', description)
 
     # lower case, remove extra characters and remove spaces
     desc_list = [x.lower().replace('"', '').replace('_', '').strip(' ') for x in desc_list]
@@ -56,7 +59,7 @@ def get_long_form_codes(code_df):
     code_dict_long = { 'code': [], 'code_desc': [], 'description': [] }
 
     for idx, row in code_df.iterrows():
-        code = row.q_code
+        code = str(row.q_code)
         code_desc = row.qc_desc
 
         qc_desc = split_description(row.qc_desc)
@@ -168,3 +171,80 @@ def get_outputs_wide(df, response_column, code_df_long, output_columns, n_column
     output_df.iloc[:, 1:] = output_df.iloc[:, 1:].astype(int)
 
     return output_df
+
+
+
+## QUESTION 22 SPECIFIC
+
+# get extra information about each country (other spellings, nationalities, etc)
+def get_country_info(row):
+    # Skip rows where 'code' is 88, 99, or 80000
+    if row['code'] in [88, 99, 80000]:
+        return []
+    
+    country_name = row['description']
+    
+    try:
+        # Fetch country information
+        country = CountryInfo(country_name)
+        data = country.info()
+        
+        # Check if the data is available
+        if not data:
+            return []
+        
+        # Extract alternative spellings, capital, demonym and native name of that country
+        altSpellings = data.get('altSpellings', [])
+        capital = data.get('capital', "")
+        demonym = data.get('demonym', "")
+        nativeName = data.get('nativeName', "")
+        
+        # Combine the extracted details into a single string
+        # NOTE: this might be adding too many, focus on just the demonyms/capitals for now
+        
+        # description_extended = altSpellings + [capital, demonym, nativeName]
+        description_extended = [demonym]
+
+        # exclude country codes (too short to be useful)
+        description_extended = [x for x in description_extended if len(x) > 2]
+
+        return description_extended
+    
+    except KeyError:  # Handle countries not found in the countryinfo package
+        return []
+    
+
+# modify long form code df to include extra nationality info
+def get_long_form_codes_q22(code_df_long_tmp):
+
+    code_dict_long = { 'code': [], 'code_desc': [], 'description': [] }
+    for idx, row in code_df_long_tmp.iterrows():
+
+        # get the new codes for each country (nationalities, alternate spellings, etc)
+        code = row.code
+        code_desc = row.code_desc
+        description = row.description
+
+        description_extended = get_country_info(row)
+        description_full = [description] + [x.lower() for x in description_extended]
+        description_full = [*set(description_full)]
+
+        n_desc = len(description_full)
+
+        if n_desc==0:
+            continue
+
+        # append to dictionary
+        code_dict_long['code'].extend([code]*n_desc)
+        code_dict_long['code_desc'].extend([code_desc]*n_desc)
+        code_dict_long['description'].extend(description_full)
+
+    code_df_long = pd.DataFrame(code_dict_long)
+
+    # get rid of duplicate rows
+    code_df_long = code_df_long.drop_duplicates().reset_index(drop=True)
+
+    # get rid of long descriptions
+    code_df_long = code_df_long[code_df_long.description.str.len()<20].reset_index(drop=True)
+
+    return code_df_long
