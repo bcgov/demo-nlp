@@ -38,12 +38,12 @@ from .preprocess import *
 from .connect import *
 
 # create classifier
-def create_model(input_df, output_df, verbose=True):
+def create_model(input_df, output_df, verbose=True, **kwargs):
     if verbose:
         verbose = 1
     else:
         verbose = 0
-    clf = RandomForestClassifier(random_state = 0, verbose=1)
+    clf = RandomForestClassifier(random_state = 0, verbose=1, **kwargs)
     clf.fit(input_df, output_df)
 
     return clf
