@@ -112,7 +112,7 @@ def create_single_phrase_synthetic(
             extra_input_df = pd.concat([extra_input_df, input_df]).reset_index(drop=True)
 
             if verbose:
-                print_string = f'Code: {idx} -- Observations: {val} + {n_more_counts}. Done.'
+                print_string = f'{count:02}/{n_codes:02} -- Code: {idx} -- Observations: {val} + {n_more_counts}. Done.'
                 print(print_string, end='\r')
 
     return extra_input_df, extra_output_df
