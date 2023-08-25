@@ -39,7 +39,8 @@ def create_single_phrase_synthetic(
         output_columns, 
         code_df_long,
         n_per_category = None,
-        verbose=True
+        use_given = True,
+        verbose = True
         ):
 
     # make sure code counts are sorted
@@ -58,12 +59,20 @@ def create_single_phrase_synthetic(
     extra_output_df = pd.DataFrame(columns = output_columns)
     extra_input_df = pd.DataFrame(columns = input_columns)
 
+    count = 0
     for idx, val in code_counts.items():
 
+        count+=1
         if verbose:
             print()
-            print_string = f'Code: {idx} -- Observations: {val}'
+            print_string = f'{count:02}/{n_codes:02} -- Code: {idx} -- Observations: {val}'
             print(print_string, end='\r')
+
+        # remove the value count if you just want n_per_category more regardless
+        if use_given:
+            val = val
+        else:
+            val = 0
 
         # don't add any more to biggest class 
         if val == n_per_category:
@@ -84,7 +93,7 @@ def create_single_phrase_synthetic(
             if len(code_idx) == 0:
                 continue
 
-            n_more_counts = max_counts - val
+            n_more_counts = n_per_category - val
 
             # randomly select synthetic data
             random_df = pd.DataFrame(columns = ['response'], data = random.choices(desc_list, k=n_more_counts))
@@ -134,6 +143,7 @@ def create_multi_phrase_synthetic(
     # Extract combinations from df_closed
 
     # change to generic column name 
+    df_closed = df_closed.copy()
     df_closed.columns = ['response']
     df_closed['combination'] = df_closed['response'].apply(lambda x: tuple(x.split('µ')))
     multi_response_freq_closed = df_closed['combination'].value_counts().reset_index()
