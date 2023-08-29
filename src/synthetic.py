@@ -154,12 +154,33 @@ def create_multi_phrase_synthetic(
     multi_response_freq = pd.concat([multi_response_freq_test, multi_response_freq_closed])
     multi_response_freq = multi_response_freq.groupby('combination').sum().reset_index()
     
-    manual_combinations = [('21', '32'), ('42', '14'), ('21', '52'), ('42', '33'), ('31', '43'), ('12', '44'), ('15', '21', '33'), ('11', '12', '13', '14'), ('21', '22', '23', '24'), ('31', '32', '33', '34'), ('41', '42', '43', '44'),('51', '52', '53', '54'),('53', '43', '33', '23'),('51', '41', '31', '21')]
+    manual_combinations = [
+        ('21', '32'), 
+        ('42', '14'), 
+        ('21', '52'), 
+        ('42', '33'), 
+        ('31', '43'), 
+        ('12', '44'), 
+        ('15', '21', '33'), 
+        ('11', '12', '13', '14'), 
+        ('21', '22', '23', '24'), 
+        ('31', '32', '33', '34'), 
+        ('41', '42', '43', '44'),
+        ('51', '52', '53', '54'),
+        ('53', '43', '33', '23'),
+        ('51', '41', '31', '21')
+        ]
     for combination in manual_combinations:
         existing_rows = multi_response_freq[multi_response_freq['combination'] == combination]
         if existing_rows.empty:
             # If the combination doesn't exist, add a new row
-            multi_response_freq = multi_response_freq.append({'combination': combination, 'frequency': 10}, ignore_index=True)
+            multi_response_freq = pd.concat(
+                [
+                    multi_response_freq, 
+                    pd.DataFrame({'combination': combination, 'frequency': 10})
+                ], 
+                ignore_index=True
+                )
             
     # Normalize frequency for probability
     multi_response_freq['frequency'] /= multi_response_freq['frequency'].sum()
