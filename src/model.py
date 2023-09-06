@@ -86,6 +86,9 @@ def produce_results(
         input_df, 
         output_df, 
         clf,
+        output_columns,
+        n_columns,
+        question = 'Q32',
         threshold = 0.5,
         tentative_lower = 0.25,
         tentative_upper = 0.75,
@@ -113,7 +116,7 @@ def produce_results(
     # set up output metrics
     n_rows = actual_output_df.shape[0]
 
-    results_dict = {f'q32race_c{nn:02}': [] for nn in range(1, 17)}
+    results_dict = {f'{output_columns}{nn:02}': [] for nn in range(1, n_columns+1)}
 
     results_dict['match'] = []
     results_dict['original_matched'] = []
@@ -121,6 +124,11 @@ def produce_results(
     results_dict['n_original_categories'] = []
     results_dict['n_model_categories'] = []
     results_dict['tentative_categories'] = []
+
+    # add extra flags for Q22
+    if question.lower() == 'q22':
+        results_dict['outside_continent'] = []
+        results_dict['inside_continent'] = []
 
     for ii in range(n_rows):
 
@@ -139,30 +147,45 @@ def produce_results(
         results_dict['n_model_categories'].append(num_categories(y_pred, threshold))
         results_dict['tentative_categories'].append(tentative_categories(y_pred, tentative_lower, tentative_upper, delimiter))
 
+        # add extra flags for Q22
+        if question.lower() == 'q22':
+            category = str(df.iloc[ii, :].origin)
+            results_dict['outside_continent'].append(outside_continent(y_pred, threshold, category))
+            results_dict['inside_continent'].append(inside_continent(y_pred, threshold, category))
+
         all_cats = list_categories(y, y_pred, threshold)
         n_cats = len(all_cats)
-        for jj in range(1, 17):
+        for jj in range(1, n_columns+1):
             if jj > n_cats:
-                results_dict[f'q32race_c{jj:02}'].append(None)
+                results_dict[f'{output_columns}{jj:02}'].append(None)
             else:
-                results_dict[f'q32race_c{jj:02}'].append(all_cats[jj-1])
-                
-    results_df = df[
-        ['id', 'q32race', 'aq32race', 'aq32race_cleaned', 'coding_comment', 'cycle']
-    ].merge(pd.DataFrame(results_dict), left_index=True, right_index=True)
+                results_dict[f'{output_columns}{jj:02}'].append(all_cats[jj-1])
+
+    drop_columns = [f'{output_columns}{kk:02}' for kk in range(1, n_columns+1)]  
+    results_df = df.drop(
+        columns=drop_columns
+        ).merge(pd.DataFrame(results_dict), left_index=True, right_index=True)
 
     return results_df
 
 
 # list outputs for a single sentence 
-def list_classes(sentence, code_df_long, clf, top_n = 10, min_pct = 0.05, spellcheck = True):
+def list_classes(
+        sentence, 
+        code_df_long, 
+        clf, 
+        truncate_inputs = False,
+        top_n = 10, 
+        min_pct = 0.05, 
+        spellcheck = True
+        ):
 
     # get the code/code descriptions
     code_df = code_df_long.groupby(['code', 'code_desc']).count().reset_index()
     code_list = code_df_long.code.unique()
 
     # use spell check if requested
-    if correct_spelling:
+    if spellcheck:
         corrected_sentence = correct_spelling(sentence)
     else:
         corrected_sentence = sentence
@@ -171,6 +194,11 @@ def list_classes(sentence, code_df_long, clf, top_n = 10, min_pct = 0.05, spellc
     cols = list(tmp.col_id.values)
     tmp = tmp.pivot_table(columns=['col_id']).reset_index(drop=True).rename_axis(None, axis=1)
     tmp = tmp[cols]
+
+    # Q22 uses a slightly different version of inputs, so modify here if necessary
+    if truncate_inputs:
+        tmp['response'] = corrected_sentence
+        tmp = convert_input(tmp).drop('response', axis=1)
     
     test_out = clf.predict_proba(tmp)
     for idx, item in enumerate(test_out):
@@ -184,7 +212,7 @@ def list_classes(sentence, code_df_long, clf, top_n = 10, min_pct = 0.05, spellc
     ordered_idx = np.argsort(predictions)[::-1]
     print()
     print(f'TOP MATCHES FOR: {sentence}')
-    if correct_spelling:
+    if spellcheck:
         print(f'CORRECTED TO:    {corrected_sentence}')
         
     print()
@@ -250,6 +278,7 @@ def num_categories(y, threshold):
     y_loc = np.where(y==1)[0]
     return len(y_loc)
 
+
 # any categories in a 'tentative' range
 def tentative_categories(y_pred, lower, upper, delimiter='μ'):
     tentative_list = list(y_pred[((y_pred>lower) & (y_pred<upper))].index)
@@ -258,6 +287,37 @@ def tentative_categories(y_pred, lower, upper, delimiter='μ'):
     else:
         tentative_str = delimiter.join(tentative_list)
     return tentative_str
+
+
+# extra q22 flags
+# flags if the model predicts a sub-region outside the continent group
+def outside_continent(y_pred, threshold, category):
+    y_pred = (y_pred>threshold)*1
+    subgroups = list(y_pred[y_pred==1].index)
+
+    has_outer = 0
+    for subgroup in subgroups:
+        if str(subgroup[0]) != str(category):
+            has_outer = 1
+            break
+
+    return has_outer
+
+
+# flags if at least one sub-regions is inside the continent group
+def inside_continent(y_pred, threshold, category):
+
+    y_pred = (y_pred>threshold)*1
+    subgroups = list(y_pred[y_pred==1].index)
+
+    has_inner = 0
+    for subgroup in subgroups:
+        if str(subgroup[0]) == str(category):
+            has_inner = 1
+            break
+
+    return has_inner
+
 
 # list of all categories, including those from the mc
 def list_categories(y, y_pred, threshold):

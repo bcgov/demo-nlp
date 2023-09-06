@@ -214,6 +214,29 @@ def get_country_info(row):
         return []
     
 
+# reshape the dataframe so each row is a continent/person response
+# instead of each row having a person/all continents
+def reshape_df(df_open):
+    # do this piece wise to deal with weird shape 
+    df_reshaped = pd.DataFrame(
+        columns = ['id', 'cycle', 'q22ances', 'aq22ances'] + 
+                    [f'q22ances_c0{ii}' for ii in range(1, 6)] +
+                    ['origin']
+    )
+
+    for jj in range(1, 5+1):
+        cols = ['id', 'cycle', f'q22ances{jj}', f'aq22ances{jj}'] + [f'q22ances_c{(jj-1)*5 + ii:02}' for ii in range(1 ,6)]
+        df_tmp = df_open.loc[:, cols]
+        df_tmp['origin'] = jj
+        df_tmp.columns = df_reshaped.columns
+        df_reshaped = pd.concat([df_reshaped, df_tmp])
+
+    # Filtering rows where q22ances and aq22ances are not None
+    df_reshaped = df_reshaped[df_reshaped['q22ances'].notna() & df_reshaped['aq22ances'].notna()]
+    df_reshaped = df_reshaped.sort_values(by='id')
+    return df_reshaped
+
+
 # modify long form code df to include extra nationality info
 def get_long_form_codes_q22(code_df_long_tmp):
 
@@ -248,3 +271,26 @@ def get_long_form_codes_q22(code_df_long_tmp):
     code_df_long = code_df_long[code_df_long.description.str.len()<20].reset_index(drop=True)
 
     return code_df_long
+
+
+# convert the big long inputs to a condensed version for q22. 
+# model works better this way
+def convert_input(input_df):
+    tmp = (
+        input_df
+        .reset_index()
+        .melt(id_vars=['index', 'response'])
+        .assign(code = lambda x: x.variable.apply(lambda x: x[0:2]))
+        .assign(value = lambda x: pd.to_numeric(x['value'], errors='coerce'))  # Convert to numeric
+        .groupby(['index', 'response', 'code'], group_keys=False)
+        .apply(lambda x: x.nlargest(4, 'value'))
+        .groupby(['index', 'response', 'code'])
+        .value.mean()
+        .reset_index()
+        .sort_values(by=['index', 'code'])
+        .pivot_table(index=['index', 'response'], columns=['code'])
+    )
+    
+    tmp.columns = [x[1] for x in tmp.columns]
+    tmp = tmp.reset_index().drop('index', axis=1)
+    return tmp
