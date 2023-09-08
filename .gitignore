@@ -28,3 +28,6 @@ credentials.txt
 
 # model files
 models/
+
+# data files
+data/
