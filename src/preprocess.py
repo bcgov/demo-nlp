@@ -203,10 +203,13 @@ def get_country_info(row):
         # NOTE: this might be adding too many, focus on just the demonyms/capitals for now
         
         # description_extended = altSpellings + [capital, demonym, nativeName]
-        description_extended = [demonym]
+        description_extended = altSpellings + [demonym]
 
         # exclude country codes (too short to be useful)
-        description_extended = [x for x in description_extended if len(x) > 2]
+        description_extended = [
+            x for x in description_extended 
+            if (len(x) > 2 or x=='US' or x=='UK')
+            ]
 
         return description_extended
     
@@ -280,7 +283,7 @@ def convert_input(input_df):
         input_df
         .reset_index()
         .melt(id_vars=['index', 'response'])
-        .assign(code = lambda x: x.variable.apply(lambda x: x[0:2]))
+        .assign(code = lambda x: x.variable.apply(lambda x: x.split('_')[0]))
         .assign(value = lambda x: pd.to_numeric(x['value'], errors='coerce'))  # Convert to numeric
         .groupby(['index', 'response', 'code'], group_keys=False)
         .apply(lambda x: x.nlargest(4, 'value'))

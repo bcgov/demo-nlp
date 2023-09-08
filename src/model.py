@@ -97,7 +97,7 @@ def produce_results(
         ):
 
     # create inputs for model
-    actual_input_df = input_df.drop('response', axis=1).astype(int)
+    actual_input_df = input_df.drop('response', axis=1).astype(float)
     actual_output_df = output_df.drop('response', axis=1).astype(int)
 
     # get outputs from model
@@ -180,6 +180,8 @@ def list_classes(
         spellcheck = True
         ):
 
+    sentence = sentence.lower()
+    
     # get the code/code descriptions
     code_df = code_df_long.groupby(['code', 'code_desc']).count().reset_index()
     code_list = code_df_long.code.unique()
