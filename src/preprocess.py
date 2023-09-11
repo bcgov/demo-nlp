@@ -27,6 +27,9 @@ import os
 import pandas as pd
 import numpy as np
 
+# country info
+from countryinfo import CountryInfo
+
 # nlp stuff
 from fuzzywuzzy import fuzz
 from autocorrect import Speller
@@ -40,7 +43,7 @@ def split_description(description):
         return []
         
     # split string based on comma delimiters, as well as words in brackets
-    desc_list = re.split(r'\sand\s|\sor\s|[,()\r\n]+', description)
+    desc_list = re.split(r'\sand\s|\sor\s|including|[,;()\r\n]+', description)
 
     # lower case, remove extra characters and remove spaces
     desc_list = [x.lower().replace('"', '').replace('_', '').strip(' ') for x in desc_list]
@@ -56,7 +59,7 @@ def get_long_form_codes(code_df):
     code_dict_long = { 'code': [], 'code_desc': [], 'description': [] }
 
     for idx, row in code_df.iterrows():
-        code = row.q_code
+        code = str(row.q_code)
         code_desc = row.qc_desc
 
         qc_desc = split_description(row.qc_desc)
@@ -136,7 +139,7 @@ def get_scores_from_df(response_df, response_column, code_df_long, headers=None)
 
 # for hardcoded training data, convert to wide form
 # 1/0 binary responses for each category
-def get_outputs_wide(df, response_column, code_df_long):
+def get_outputs_wide(df, response_column, code_df_long, output_columns, n_columns):
     code_list = code_df_long.code.unique()
 
     output_df = pd.DataFrame(columns = ['response'] + list(code_list))
@@ -146,8 +149,8 @@ def get_outputs_wide(df, response_column, code_df_long):
         code_vals = [0]*len(code_list)
         # cycle through all the 
         # NOTE: this is question specific
-        for ii in range(1,17):
-            column = f'q32race_c{ii:02}'
+        for ii in range(1, n_columns+1):
+            column = f'{output_columns}{ii:02}'
             possible_code = row[column]
             if possible_code is None:
                 continue
@@ -168,3 +171,129 @@ def get_outputs_wide(df, response_column, code_df_long):
     output_df.iloc[:, 1:] = output_df.iloc[:, 1:].astype(int)
 
     return output_df
+
+
+
+## QUESTION 22 SPECIFIC
+
+# get extra information about each country (other spellings, nationalities, etc)
+def get_country_info(row):
+    # Skip rows where 'code' is 88, 99, or 80000
+    if row['code'] in [88, 99, 80000]:
+        return []
+    
+    country_name = row['description']
+    
+    try:
+        # Fetch country information
+        country = CountryInfo(country_name)
+        data = country.info()
+        
+        # Check if the data is available
+        if not data:
+            return []
+        
+        # Extract alternative spellings, capital, demonym and native name of that country
+        altSpellings = data.get('altSpellings', [])
+        capital = data.get('capital', "")
+        demonym = data.get('demonym', "")
+        nativeName = data.get('nativeName', "")
+        
+        # Combine the extracted details into a single string
+        # NOTE: this might be adding too many, focus on just the demonyms/capitals for now
+        
+        # description_extended = altSpellings + [capital, demonym, nativeName]
+        description_extended = altSpellings + [demonym]
+
+        # exclude country codes (too short to be useful)
+        description_extended = [
+            x for x in description_extended 
+            if (len(x) > 2 or x=='US' or x=='UK')
+            ]
+
+        return description_extended
+    
+    except KeyError:  # Handle countries not found in the countryinfo package
+        return []
+    
+
+# reshape the dataframe so each row is a continent/person response
+# instead of each row having a person/all continents
+def reshape_df(df_open):
+    # do this piece wise to deal with weird shape 
+    df_reshaped = pd.DataFrame(
+        columns = ['id', 'cycle', 'q22ances', 'aq22ances'] + 
+                    [f'q22ances_c0{ii}' for ii in range(1, 6)] +
+                    ['origin']
+    )
+
+    for jj in range(1, 5+1):
+        cols = ['id', 'cycle', f'q22ances{jj}', f'aq22ances{jj}'] + [f'q22ances_c{(jj-1)*5 + ii:02}' for ii in range(1 ,6)]
+        df_tmp = df_open.loc[:, cols]
+        df_tmp['origin'] = jj
+        df_tmp.columns = df_reshaped.columns
+        df_reshaped = pd.concat([df_reshaped, df_tmp])
+
+    # Filtering rows where q22ances and aq22ances are not None
+    df_reshaped = df_reshaped[df_reshaped['q22ances'].notna() & df_reshaped['aq22ances'].notna()]
+    df_reshaped = df_reshaped.sort_values(by='id')
+    return df_reshaped
+
+
+# modify long form code df to include extra nationality info
+def get_long_form_codes_q22(code_df_long_tmp):
+
+    code_dict_long = { 'code': [], 'code_desc': [], 'description': [] }
+    for idx, row in code_df_long_tmp.iterrows():
+
+        # get the new codes for each country (nationalities, alternate spellings, etc)
+        code = row.code
+        code_desc = row.code_desc
+        description = row.description
+
+        description_extended = get_country_info(row)
+        description_full = [description] + [x.lower() for x in description_extended]
+        description_full = [*set(description_full)]
+
+        n_desc = len(description_full)
+
+        if n_desc==0:
+            continue
+
+        # append to dictionary
+        code_dict_long['code'].extend([code]*n_desc)
+        code_dict_long['code_desc'].extend([code_desc]*n_desc)
+        code_dict_long['description'].extend(description_full)
+
+    code_df_long = pd.DataFrame(code_dict_long)
+
+    # get rid of duplicate rows
+    code_df_long = code_df_long.drop_duplicates().reset_index(drop=True)
+
+    # get rid of long descriptions
+    code_df_long = code_df_long[code_df_long.description.str.len()<20].reset_index(drop=True)
+
+    return code_df_long
+
+
+# convert the big long inputs to a condensed version for q22. 
+# model works better this way
+def convert_input(input_df):
+    tmp = (
+        input_df
+        .reset_index()
+        .melt(id_vars=['index', 'response'])
+        .assign(code = lambda x: x.variable.apply(lambda x: x.split('_')[0]))
+        .assign(value = lambda x: pd.to_numeric(x['value'], errors='coerce'))  # Convert to numeric
+        .groupby(['index', 'response', 'code'], group_keys=False)
+        .apply(lambda x: x.nlargest(4, 'value'))
+        .groupby(['index', 'response', 'code'])
+        .value.mean()
+        .reset_index()
+        .sort_values(by=['index', 'code'])
+        .pivot_table(index=['index', 'response'], columns=['code'])
+    )
+    
+    tmp.columns = [x[1] for x in tmp.columns]
+    tmp = tmp.reset_index().drop('index', axis=1)
+    return tmp

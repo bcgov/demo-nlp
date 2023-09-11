@@ -21,6 +21,7 @@
 # IMPORTS 
 # system stuff
 import random
+import itertools
 
 # standard stuff
 import pandas as pd
@@ -39,7 +40,8 @@ def create_single_phrase_synthetic(
         output_columns, 
         code_df_long,
         n_per_category = None,
-        verbose=True
+        use_given = True,
+        verbose = True
         ):
 
     # make sure code counts are sorted
@@ -58,12 +60,20 @@ def create_single_phrase_synthetic(
     extra_output_df = pd.DataFrame(columns = output_columns)
     extra_input_df = pd.DataFrame(columns = input_columns)
 
+    count = 0
     for idx, val in code_counts.items():
 
+        count+=1
         if verbose:
             print()
-            print_string = f'Code: {idx} -- Observations: {val}'
+            print_string = f'{count:02}/{n_codes:02} -- Code: {idx} -- Observations: {val}'
             print(print_string, end='\r')
+
+        # remove the value count if you just want n_per_category more regardless
+        if use_given:
+            val = val
+        else:
+            val = 0
 
         # don't add any more to biggest class 
         if val == n_per_category:
@@ -84,7 +94,7 @@ def create_single_phrase_synthetic(
             if len(code_idx) == 0:
                 continue
 
-            n_more_counts = max_counts - val
+            n_more_counts = n_per_category - val
 
             # randomly select synthetic data
             random_df = pd.DataFrame(columns = ['response'], data = random.choices(desc_list, k=n_more_counts))
@@ -103,7 +113,7 @@ def create_single_phrase_synthetic(
             extra_input_df = pd.concat([extra_input_df, input_df]).reset_index(drop=True)
 
             if verbose:
-                print_string = f'Code: {idx} -- Observations: {val} + {n_more_counts}. Done.'
+                print_string = f'{count:02}/{n_codes:02} -- Code: {idx} -- Observations: {val} + {n_more_counts}. Done.'
                 print(print_string, end='\r')
 
     return extra_input_df, extra_output_df
@@ -118,7 +128,7 @@ def create_multi_phrase_synthetic(
         input_columns,
         output_columns,
         code_df_long,
-        n_synthetic=50_000,
+        n_synthetic=200_000,
         verbose=True
 ):
     
@@ -132,14 +142,46 @@ def create_multi_phrase_synthetic(
     multi_response_freq_test.columns = ['combination', 'frequency']
 
     # Extract combinations from df_closed
-    df_closed['combination'] = df_closed['q32race'].apply(lambda x: tuple(x.split('µ')))
+
+    # change to generic column name 
+    df_closed = df_closed.copy()
+    df_closed.columns = ['response']
+    df_closed['combination'] = df_closed['response'].apply(lambda x: tuple(x.split('µ')))
     multi_response_freq_closed = df_closed['combination'].value_counts().reset_index()
     multi_response_freq_closed.columns = ['combination', 'frequency']
 
     # Merge the frequency distributions
     multi_response_freq = pd.concat([multi_response_freq_test, multi_response_freq_closed])
     multi_response_freq = multi_response_freq.groupby('combination').sum().reset_index()
-
+    
+    manual_combinations = [
+        ('21', '32'), 
+        ('42', '14'), 
+        ('21', '52'), 
+        ('42', '33'), 
+        ('31', '43'), 
+        ('12', '44'), 
+        ('15', '21', '33'), 
+        ('11', '12', '13', '14'), 
+        ('21', '22', '23', '24'), 
+        ('31', '32', '33', '34'), 
+        ('41', '42', '43', '44'),
+        ('51', '52', '53', '54'),
+        ('53', '43', '33', '23'),
+        ('51', '41', '31', '21')
+        ]
+    for combination in manual_combinations:
+        existing_rows = multi_response_freq[multi_response_freq['combination'] == combination]
+        if existing_rows.empty:
+            # If the combination doesn't exist, add a new row
+            multi_response_freq = pd.concat(
+                [
+                    multi_response_freq, 
+                    pd.DataFrame({'combination': combination, 'frequency': 10})
+                ], 
+                ignore_index=True
+                )
+            
     # Normalize frequency for probability
     multi_response_freq['frequency'] /= multi_response_freq['frequency'].sum()
 
