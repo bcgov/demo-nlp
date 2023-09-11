@@ -1,4 +1,3 @@
-from autocorrect import Speller
 import html
 import requests
 from bs4 import BeautifulSoup
@@ -81,7 +80,7 @@ def partial_match(word, code):
 
 # some matching partially - remove as unlikely matches
 def likely_matches(match_codes):
-    codes = [x.strip(' ') for x in re.split('[,]', match_codes) if len(x)>0]
+    codes = [x.strip(' ').lower() for x in re.split('[,]', match_codes) if len(x)>0]
     sorted_codes = sorted(codes, key=len)
     n_codes = len(sorted_codes)
     likely_matches = []
@@ -92,12 +91,11 @@ def likely_matches(match_codes):
             longer_code = sorted_codes[jj]
             
             if smaller_code in longer_code:
-                print(smaller_code, longer_code)
                 keep = False
                 break
 
         if keep:
-            likely_matches.append(smaller_code)
+            likely_matches.append(smaller_code.title())
 
     return ', '.join(likely_matches)
 
