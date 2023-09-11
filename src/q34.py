@@ -73,7 +73,7 @@ def partial_match(word, code):
     code = code.lower()
     match = False
     if word != code:
-        if re.search(code, word):
+        if re.search(r'\b' + code + r'\b', word):
             match = True
 
     return match
