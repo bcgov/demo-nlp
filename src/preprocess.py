@@ -243,6 +243,29 @@ def reshape_df(df_open):
 # modify long form code df to include extra nationality info
 def get_long_form_codes_q22(code_df_long_tmp):
 
+    long_desc_dict = {
+    'libyan arab jamahiriya': 'libya',
+    'republic of the congo': 'congo',
+    'democratic republic of the congo': 'drc',
+    'united republic of tanzania': 'tanzania',
+    'republic of south africa': 'south africa',
+    'plurinational state of bolivia': 'bolivia',
+    'bolivarian republic of venezuela': 'venezuela',
+    'macao special administrative region': 'macao',
+    "democratic people's republic of korea": 'north korea',
+    'hong kong special administrative region': 'hong kong',
+    "lao people's democratic republic": 'laos',
+    'syrian arab republic': 'syria',
+    'republic of macedonia': 'macedonia',
+    'federated states of micronesia': 'micronesia'   
+}
+    
+    # shorten some long codes to be more useful
+    code_df_long_tmp['description'] = (
+        code_df_long_tmp['description']
+        .apply(lambda x: x if x not in long_desc_dict else long_desc_dict[x])
+    )
+
     code_dict_long = { 'code': [], 'code_desc': [], 'description': [] }
     for idx, row in code_df_long_tmp.iterrows():
 
@@ -271,7 +294,7 @@ def get_long_form_codes_q22(code_df_long_tmp):
     code_df_long = code_df_long.drop_duplicates().reset_index(drop=True)
 
     # get rid of long descriptions
-    code_df_long = code_df_long[code_df_long.description.str.len()<20].reset_index(drop=True)
+    # code_df_long = code_df_long[code_df_long.description.str.len()<20].reset_index(drop=True)
 
     return code_df_long
 
