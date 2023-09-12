@@ -33,6 +33,7 @@ from countryinfo import CountryInfo
 # nlp stuff
 from fuzzywuzzy import fuzz
 from autocorrect import Speller
+import html
 
 
 # split a list of descriptor words into a list 
@@ -87,9 +88,17 @@ def get_long_form_codes(code_df):
 
 
 # Use autocorrect pacakage to correct typos
-def correct_spelling(sentence):
-    spell = Speller()
-    corrected_sentence = spell(sentence)
+def correct_spelling(sentence, spell=None):
+    if spell is None:
+        spell = Speller()
+
+    if sentence is None:
+        corrected_sentence = np.nan
+    else:
+        sentence = str(sentence)
+        sentence = sentence.strip(' ').lower()
+        sentence = html.unescape(sentence)
+        corrected_sentence = spell(sentence)
     return corrected_sentence
 
 
