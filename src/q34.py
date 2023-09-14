@@ -1,4 +1,19 @@
+# Copyright 2023 Province of British Columbia
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at 
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import html
+import string
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -7,8 +22,31 @@ import warnings
 import os
 warnings.simplefilter(action='ignore')
 
+
+# reshape the dataframe 
+def melt_df(df_open):
+    # pivot df to be one row per response, then drop all empty rows 
+    end_chars = string.ascii_lowercase
+    n_columns = 10
+    df = pd.melt(
+        df_open, 
+        id_vars = ['id', 'cycle'], 
+        value_vars = [f'aq34culture_{end_chars[idx]}' for idx in range(n_columns)]
+    )
+
+    df = df.drop('variable', axis=1)
+    df.columns = ['id', 'cycle', 'response']
+    df = df[df.response.str.len() > 0].reset_index(drop=True)
+    df.response = df.response.astype(str)
+
+    return df
+
 # translate
-def get_translation(text):
+def get_translation(text, skip=True):
+
+    if skip:
+        return text, 0
+    
     text = text.strip()
     
     url_params = {"tl": "en", "sl": "auto", 'q': text, 'format': text}
@@ -73,7 +111,7 @@ def partial_match(word, code):
     code = code.lower()
     match = False
     if word != code:
-        if re.search(code, word):
+        if re.search(r'\b' + code + r'\b', word):
             match = True
 
     return match
@@ -107,9 +145,10 @@ def do_the_things(x, spell, code_list):
     cleaned = spell(html.unescape(x.strip(' ')))
 
     # step 2: translate (slow)
-    # translated, response_code = get_translation(cleaned)
     if x[0]=='&':
-        cleaned = get_translation(cleaned)[0]
+        translated, response_code = get_translation(cleaned, skip=False)
+    else:
+        translated, response_code = get_translation(cleaned, skip=True)
 
     # for each code, check if there is an exact or partial match
     exact_match_codes = ''
@@ -118,11 +157,11 @@ def do_the_things(x, spell, code_list):
     has_partial = False
     for code in code_list:
 
-        if exact_match(cleaned, code):
+        if exact_match(translated, code):
             has_exact = True
             exact_match_codes += code + ', '
 
-        if partial_match(cleaned, code):
+        if partial_match(translated, code):
             has_partial = True
             partial_match_codes += code + ', '
 
@@ -131,4 +170,4 @@ def do_the_things(x, spell, code_list):
 
     likely_match_codes = likely_matches(exact_match_codes + ', ' + partial_match_codes)
 
-    return x, cleaned, has_exact, has_partial, exact_match_codes, partial_match_codes, likely_match_codes
+    return x, cleaned, translated, response_code, has_exact, has_partial, exact_match_codes, partial_match_codes, likely_match_codes
