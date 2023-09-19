@@ -266,7 +266,7 @@ def get_long_form_codes_q22(code_df_long_tmp):
     "lao people's democratic republic": 'laos',
     'syrian arab republic': 'syria',
     'republic of macedonia': 'macedonia',
-    'federated states of micronesia': 'micronesia'   
+    'federated states of micronesia': 'micronesia'
 }
     
     # shorten some long codes to be more useful
@@ -274,7 +274,11 @@ def get_long_form_codes_q22(code_df_long_tmp):
         code_df_long_tmp['description']
         .apply(lambda x: x if x not in long_desc_dict else long_desc_dict[x])
     )
-
+    
+    uk_rows = code_df_long_tmp[code_df_long_tmp['description'] == 'united kingdom of great britain'].copy()
+    uk_rows['description'] = 'united kingdom'
+    code_df_long_tmp = pd.concat([code_df_long_tmp, uk_rows], ignore_index=True)
+    
     code_dict_long = { 'code': [], 'code_desc': [], 'description': [] }
     for idx, row in code_df_long_tmp.iterrows():
 
