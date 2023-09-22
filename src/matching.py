@@ -27,7 +27,7 @@ from collections import Counter
 warnings.simplefilter(action='ignore')
 
 
-# reshape the dataframe 
+# reshape the dataframe for question 34
 def melt_df(df_open):
     # pivot df to be one row per response, then drop all empty rows 
     end_chars = string.ascii_lowercase
@@ -44,6 +44,49 @@ def melt_df(df_open):
     df.response = df.response.astype(str)
 
     return df
+
+
+# reshape the dataframe for question 30
+def reshape_df(df_open):
+    # do this piece wise to deal with weird shape 
+    cols_to_pivot = [
+        'aq30religbox01buddhist',
+        'aq30religbox02christian',
+        'aq30religbox03hindu',
+        'aq30religbox04jewish',
+        'aq30religbox05muslim',
+        'aq30religbox06sikh',
+        'aq30religbox07tradindig',
+        'aq30religbox08another',
+        'aq30religbox10no'        
+        ]
+    
+    df_reshaped = pd.DataFrame(
+        columns = ['id', 'cycle', 'q30relig', 'origin', 'response']
+    )
+
+    for jj in range(1, 10):
+        cols = ['id', 'cycle', 'q30relig', cols_to_pivot[jj-1]]
+        df_tmp = df_open.loc[:, cols]
+        df_tmp['response'] = df_tmp[cols_to_pivot[jj-1]]
+
+        # question 9 has no response, skip to 10 as origin string 
+        if jj == 9:
+            jj+=1
+
+        df_tmp['origin'] = str(jj)
+        df_tmp = df_tmp[df_reshaped.columns]
+        df_reshaped = pd.concat([df_reshaped, df_tmp])
+
+    # Filtering rows where responses are not None
+    df_reshaped = df_reshaped[
+        (df_reshaped['q30relig'].notna()) & 
+        (df_reshaped['response'].notna()) &
+        (df_reshaped['response'].str.len()>0)
+        ]
+    df_reshaped = df_reshaped.sort_values(by='id').reset_index(drop=True)
+    return df_reshaped
+
 
 # translate
 def get_translation(text, skip=True):
@@ -206,6 +249,18 @@ def tokenize_and_count_word_frequencies(sentences):
 def split_languages(description):
     code_list = []
     codes = re.split(r'\sand\s|languages|n\.i\.e\.|n\.o\.s\.|[,()]+', description)
+    for code in codes:
+        code = code.strip(' ')
+        if re.search('[A-Za-z]+', code):
+            code_list.append(code)
+
+    return code_list
+
+
+# split religions
+def split_religions(description):
+    code_list = []
+    codes = re.split(r'[,()/]+', description)
     for code in codes:
         code = code.strip(' ')
         if re.search('[A-Za-z]+', code):
