@@ -177,7 +177,7 @@ def list_classes(
         truncate_inputs = False,
         top_n = 10, 
         min_pct = 0.05, 
-        spellcheck = True
+        spellcheck = None
         ):
 
     sentence = sentence.lower()
@@ -187,8 +187,11 @@ def list_classes(
     code_list = code_df_long.code.unique()
 
     # use spell check if requested
-    if spellcheck:
-        corrected_sentence = correct_spelling(sentence)
+    if spellcheck is not None:
+        if isinstance(spellcheck, bool):
+            corrected_sentence = correct_spelling(sentence)
+        else:
+            corrected_sentence = correct_spelling(sentence, spellcheck)
     else:
         corrected_sentence = sentence
     
