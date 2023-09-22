@@ -248,7 +248,7 @@ def tokenize_and_count_word_frequencies(sentences):
 # split the languages in the codes table
 def split_languages(description):
     code_list = []
-    codes = re.split(r'\sand\s|languages|n\.i\.e\.|n\.o\.s\.|[,()]+', description)
+    codes = re.split(r'\sand\s|languages|n\.i\.e\.|n\.i\.e|n\.o\.s\.|[,()]+', description)
     for code in codes:
         code = code.strip(' ')
         if re.search('[A-Za-z]+', code):
