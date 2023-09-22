@@ -20,6 +20,10 @@ import re
 import pandas as pd
 import warnings
 import os
+import nltk
+from nltk.corpus import stopwords
+from collections import Counter
+
 warnings.simplefilter(action='ignore')
 
 
@@ -139,16 +143,20 @@ def likely_matches(match_codes):
 
 
 # combined into one
-def do_the_things(x, spell, code_list):
+def do_the_things(x, spell, code_list, translate_all = False):
 
     # step 1: remove spaces, escape html, spell check
     cleaned = spell(html.unescape(x.strip(' ')))
 
     # step 2: translate (slow)
-    if x[0]=='&':
+    if translate_all:
         translated, response_code = get_translation(cleaned, skip=False)
+
     else:
-        translated, response_code = get_translation(cleaned, skip=True)
+        if x[0]=='&':
+            translated, response_code = get_translation(cleaned, skip=False)
+        else:
+            translated, response_code = get_translation(cleaned, skip=True)
 
     # for each code, check if there is an exact or partial match
     exact_match_codes = ''
@@ -171,3 +179,36 @@ def do_the_things(x, spell, code_list):
     likely_match_codes = likely_matches(exact_match_codes + ', ' + partial_match_codes)
 
     return x, cleaned, translated, response_code, has_exact, has_partial, exact_match_codes, partial_match_codes, likely_match_codes
+
+
+# tokenize and count word frequencies of those with no match
+def tokenize_and_count_word_frequencies(sentences):
+    # Load the NLTK English stop words
+    stop_words = set(stopwords.words('english'))
+
+    # Initialize a counter for word frequencies
+    word_frequencies = Counter()
+
+    for sentence in sentences:
+        # Tokenize the sentence into words
+        words = nltk.word_tokenize(sentence.lower())  # Convert to lowercase
+
+        # Remove stop words and non-alphabetic words
+        words = [word for word in words if word.isalpha() and word not in stop_words]
+
+        # Update the word frequencies
+        word_frequencies.update(words)
+
+    return word_frequencies
+
+
+# split the languages in the codes table
+def split_languages(description):
+    code_list = []
+    codes = re.split(r'\sand\s|languages|n\.i\.e\.|n\.o\.s\.|[,()]+', description)
+    for code in codes:
+        code = code.strip(' ')
+        if re.search('[A-Za-z]+', code):
+            code_list.append(code)
+
+    return code_list
