@@ -747,3 +747,5 @@ def transform_cultures(df, df_codes_updated, spell):
             'likely_match_codes'
         ]
     ]
+
+    return clean_df
