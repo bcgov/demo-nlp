@@ -267,3 +267,14 @@ def split_religions(description):
             code_list.append(code)
 
     return code_list
+
+
+def split_cultures(description):
+    code_list = []
+    codes = re.split(r'[,()/]+', description)
+    for code in codes:
+        code = code.strip(' ')
+        if re.search('[A-Za-z]+', code):
+            code_list.append(code)
+
+    return code_list
