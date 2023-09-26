@@ -245,7 +245,11 @@ def reshape_df(df_open):
 
     # Filtering rows where q22ances and aq22ances are not None
     df_reshaped = df_reshaped[df_reshaped['q22ances'].notna() & df_reshaped['aq22ances'].notna()]
-    df_reshaped = df_reshaped.sort_values(by='id')
+    df_reshaped = df_reshaped[
+        (df_reshaped['q22ances'].str.len()>0) & 
+        (df_reshaped['aq22ances'].str.len()>0)
+        ]
+    df_reshaped = df_reshaped.sort_values(by='id').reset_index(drop=True)
     return df_reshaped
 
 
