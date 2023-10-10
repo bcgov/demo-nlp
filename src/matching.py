@@ -273,9 +273,9 @@ def create_speller(code_list, extra_words):
             if x in spell.nlp_data:
                 continue
                 
-            spell.nlp_data[word] = 1_000_000
-            spell.nlp_data[word.upper()] = 1_000_000
-            spell.nlp_data[word.lower()] = 1_000_000
+            spell.nlp_data[word] = 1e9
+            spell.nlp_data[word.upper()] = 1e9
+            spell.nlp_data[word.lower()] = 1e9
 
     return spell
 
