@@ -33,6 +33,7 @@ from countryinfo import CountryInfo
 # nlp stuff
 from fuzzywuzzy import fuzz
 from autocorrect import Speller
+import html
 
 
 # split a list of descriptor words into a list 
@@ -87,9 +88,17 @@ def get_long_form_codes(code_df):
 
 
 # Use autocorrect pacakage to correct typos
-def correct_spelling(sentence):
-    spell = Speller()
-    corrected_sentence = spell(sentence)
+def correct_spelling(sentence, spell=None):
+    if spell is None:
+        spell = Speller()
+
+    if sentence is None:
+        corrected_sentence = np.nan
+    else:
+        sentence = str(sentence)
+        sentence = sentence.strip(' ').lower()
+        sentence = html.unescape(sentence)
+        corrected_sentence = spell(sentence)
     return corrected_sentence
 
 
@@ -236,13 +245,44 @@ def reshape_df(df_open):
 
     # Filtering rows where q22ances and aq22ances are not None
     df_reshaped = df_reshaped[df_reshaped['q22ances'].notna() & df_reshaped['aq22ances'].notna()]
-    df_reshaped = df_reshaped.sort_values(by='id')
+    df_reshaped = df_reshaped[
+        (df_reshaped['q22ances'].str.len()>0) & 
+        (df_reshaped['aq22ances'].str.len()>0)
+        ]
+    df_reshaped = df_reshaped.sort_values(by='id').reset_index(drop=True)
     return df_reshaped
 
 
 # modify long form code df to include extra nationality info
 def get_long_form_codes_q22(code_df_long_tmp):
 
+    long_desc_dict = {
+    'libyan arab jamahiriya': 'libya',
+    'republic of the congo': 'congo',
+    'democratic republic of the congo': 'drc',
+    'united republic of tanzania': 'tanzania',
+    'republic of south africa': 'south africa',
+    'plurinational state of bolivia': 'bolivia',
+    'bolivarian republic of venezuela': 'venezuela',
+    'macao special administrative region': 'macao',
+    "democratic people's republic of korea": 'north korea',
+    'hong kong special administrative region': 'hong kong',
+    "lao people's democratic republic": 'laos',
+    'syrian arab republic': 'syria',
+    'republic of macedonia': 'macedonia',
+    'federated states of micronesia': 'micronesia'
+}
+    
+    # shorten some long codes to be more useful
+    code_df_long_tmp['description'] = (
+        code_df_long_tmp['description']
+        .apply(lambda x: x if x not in long_desc_dict else long_desc_dict[x])
+    )
+    
+    uk_rows = code_df_long_tmp[code_df_long_tmp['description'] == 'united kingdom of great britain'].copy()
+    uk_rows['description'] = 'united kingdom'
+    code_df_long_tmp = pd.concat([code_df_long_tmp, uk_rows], ignore_index=True)
+    
     code_dict_long = { 'code': [], 'code_desc': [], 'description': [] }
     for idx, row in code_df_long_tmp.iterrows():
 
@@ -271,7 +311,7 @@ def get_long_form_codes_q22(code_df_long_tmp):
     code_df_long = code_df_long.drop_duplicates().reset_index(drop=True)
 
     # get rid of long descriptions
-    code_df_long = code_df_long[code_df_long.description.str.len()<20].reset_index(drop=True)
+    # code_df_long = code_df_long[code_df_long.description.str.len()<20].reset_index(drop=True)
 
     return code_df_long
 
