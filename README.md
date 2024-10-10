@@ -21,8 +21,16 @@ Trusted_Connection=yes;
 
 A sample connections file can be provided if necessary, after a review of the reasons for requiring access.
 
-* To create a new model, run `create_model_q32.ipynb`. 
-* To append new model results to the question, run `predict_model_q32.ipynb`
+* All source code is stored in the `src` folder
+* New models can be produced or new results appended via notebooks in the `notebooks` folder.
+* There are two types of models:
+
+    * Q32 and Q22 both utilize full data cleaning, transformation and random forest models to predict likely and tentative categories.
+    * To create a new model, run `create_model_qXX.ipynb`. 
+    * To append new model results to the question, run `predict_model_qXX.ipynb`.
+    * Q29, Q30, and Q34 are a simpler exact and partial match model that utilize data cleaning and comparisons against category words to identify whether a response is an exact or partial match to a category.
+    * To produce new results, run `q**_cleaning.ipynb`.
+    * Additional notebooks to compare final results of manual coding to the automated coding have further been created in `reporting_metrics_qXX.ipynb`. These pull in the final data after all coding methods have been completed, and compare to the model outputs. 
 
 ### Getting Help or Reporting an Issue
 
