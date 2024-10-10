@@ -21,6 +21,12 @@ Trusted_Connection=yes;
 
 A sample connections file can be provided if necessary, after a review of the reasons for requiring access.
 
+To install required python packages, run the following command from a conda command line:
+
+`conda env create -f environment.yml`
+
+This should create a new `nlp` conda environment to use for this project.
+
 * All source code is stored in the `src` folder
 * New models can be produced or new results appended via notebooks in the `notebooks` folder.
 * There are two types of models:
