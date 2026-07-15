@@ -26,7 +26,7 @@ A sample connections file can be provided if necessary, after a review of the re
 
 ### Project Status
 
-This project is complete and no longer supported or in active development.
+This repository is no longer maintained and is retained for historical reference.
 
 ### Getting Help or Reporting an Issue
 
