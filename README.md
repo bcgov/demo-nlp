@@ -1,4 +1,4 @@
-[![Lifecycle:Stable](https://img.shields.io/badge/Lifecycle-Stable-97ca00)](https://github.com/bcgov/repomountie/blob/master/doc/lifecycle-stable.md)
+[![Lifecycle:Retired](https://img.shields.io/badge/Lifecycle-Retired-d45500)](https://github.com/bcgov/repomountie/blob/master/doc/lifecycle-stable.md)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ## demo-nlp
@@ -23,6 +23,10 @@ A sample connections file can be provided if necessary, after a review of the re
 
 * To create a new model, run `create_model_q32.ipynb`. 
 * To append new model results to the question, run `predict_model_q32.ipynb`
+
+### Project Status
+
+This project is complete and no longer supported or in active development.
 
 ### Getting Help or Reporting an Issue
 
